@@ -2,9 +2,8 @@
 package App::Cope::Extra;
 use strict;
 use warnings;
+no if $] >= 5.018, warnings => "experimental";
 use 5.010_000;
-
-no warnings 'experimental';
 
 =head1 NAME
 
@@ -137,10 +136,10 @@ sub percent_b {
   return sub {
     my $pct = shift;
     $pct =~ s/^(\d+).+/$1/;	# extract number
-    given ($pct) {
-      when ( $_ >= $upper  ) { return 'red bold' }
-      when ( $_ >= $middle ) { return 'yellow bold' }
-      when ( $_ >= $lower  ) { return 'green bold' }
+    for ($pct) {
+      if ( $_ >= $upper  ) { return 'red bold' }
+      if ( $_ >= $middle ) { return 'yellow bold' }
+      if ( $_ >= $lower  ) { return 'green bold' }
       default                { return 'bold' }
     }
   };
@@ -156,12 +155,11 @@ depending on how long the ping took.
 sub ping_time {
   my ($ms) = @_;
   if ($ms =~ m/(\d+)/) {
-    given ($1) {
-      when ( $_ >= 200 ) { return 'red bold' }
-      when ( $_ >= 100 ) { return 'yellow bold' }
+    for ($1) {
+      if ( $_ >= 200 ) { return 'red bold' }
+      if ( $_ >= 100 ) { return 'yellow bold' }
       default            { return 'green bold' }
     }
   }
   return '';
 }
-
