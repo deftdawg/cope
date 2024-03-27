@@ -393,7 +393,7 @@ sub real_path {
   my @dirs  = PATH->Whence($file);
   my $index = firstidx { $_ eq $0 } @dirs;
   my $path  = $dirs[ $index + 1 ]
-    or croak "Executable not in \$PATH: $file";
+    or croak `bash -c '\$\(type -p \$\(which command-not-found\) /usr/lib/command-not-found | head -1\) $file || echo -n "Executable not in \$PATH: $file"'`;
 
   return $path;
 }
