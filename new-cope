@@ -27,9 +27,8 @@ show_help() {
     echo -e "  ${CYAN}nocope${NC} ${YELLOW}<command>${NC} ${MAGENTA}[args...]${NC} - Execute command directly without COPE wrappers"
     echo ""
     echo -e "${WHITE}Examples:${NC}"
-    echo -e "  ${CYAN}cope enable${NC}              # Enable cope wrappers in PATH"
-    echo -e "  ${CYAN}cope disable${NC}             # Disable cope wrappers from PATH"
     echo -e "  ${CYAN}eval \$(cope enable)${NC}      # Enable in current shell"
+    echo -e "  ${CYAN}nocope ls -la${NC}            # Run ls directly without cope"
     echo -e "  ${CYAN}cope ls -la${NC}              # Run ls with colorization"
     echo -e "  ${CYAN}cope ping google.com${NC}     # Run ping with colorization"
     echo ""
@@ -43,7 +42,7 @@ show_help() {
 
 get_cope_commands() {
     # Get list of all commands in cope bin directory, excluding cope itself
-    find "$COPE_BIN_DIR" -maxdepth 1 -type f -executable ! -name "cope" ! -name "nocope" | sort | while read -r cmd; do
+    find "$COPE_BIN_DIR" -maxdepth 1 -type f -not -type l -executable ! -name "cope" ! -name "nocope" | sort | while read -r cmd; do
         basename "$cmd"
     done
 }
