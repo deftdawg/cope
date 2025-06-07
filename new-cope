@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+
+# Find the directory where cope wrappers are located
+COPE_BIN_DIR="$(dirname $(find $(dirname "$(realpath "$0")") | grep nocope))"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m' # No Color
+
+show_help() {
+    echo -e "${WHITE}Usage:${NC} ${CYAN}cope${NC} ${YELLOW}[COMMAND]${NC} ${MAGENTA}[ARGS...]${NC}"
+    echo ""
+    echo -e "${WHITE}Cope Controls:${NC}"
+    echo -e "  ${GREEN}enable${NC}, ${GREEN}on${NC}     - Add cope wrappers to PATH (prepend)"
+    echo -e "  ${GREEN}disable${NC}, ${GREEN}off${NC}   - Remove cope wrappers from PATH"
+    echo -e "  ${GREEN}status${NC}           - Show cope status and command availability"
+    echo -e "  ${GREEN}help${NC}             - Show this help message"
+    echo ""
+    echo -e "${WHITE}Command Execution:${NC}"
+    echo -e "  ${CYAN}cope${NC} ${YELLOW}<command>${NC} ${MAGENTA}[args...]${NC} - Execute command with COPE=1 environment"
+    echo -e "  ${CYAN}nocope${NC} ${YELLOW}<command>${NC} ${MAGENTA}[args...]${NC} - Execute command directly without COPE wrappers"
+    echo ""
+    echo -e "${WHITE}Examples:${NC}"
+    echo -e "  ${CYAN}cope enable${NC}              # Enable cope wrappers in PATH"
+    echo -e "  ${CYAN}cope disable${NC}             # Disable cope wrappers from PATH"
+    echo -e "  ${CYAN}eval \$(cope enable)${NC}      # Enable in current shell"
+    echo -e "  ${CYAN}cope ls -la${NC}              # Run ls with colorization"
+    echo -e "  ${CYAN}cope ping google.com${NC}     # Run ping with colorization"
+    echo ""
+    echo -e "${WHITE}Installation:${NC}"
+    echo -e "  Add to shell profile: ${YELLOW}echo 'eval \$(cope enable)' >> ~/.bashrc${NC}"
+    echo
+    
+    # Show command availability
+    show_status
+}
+
+get_cope_commands() {
+    # Get list of all commands in cope bin directory, excluding cope itself
+    find "$COPE_BIN_DIR" -maxdepth 1 -type f -executable ! -name "cope" ! -name "nocope" | sort | while read -r cmd; do
+        basename "$cmd"
+    done
+}
+
+check_command_available() {
+    local cmd="$1"
+    # Check if command exists in PATH (excluding our cope directory)
+    local saved_path="$PATH"
+    export PATH="${PATH//$COPE_BIN_DIR:/}"
+    export PATH="${PATH//:$COPE_BIN_DIR/}"
+    export PATH="${PATH//$COPE_BIN_DIR/}"
+    
+    local result=1
+    if command -v "$cmd" >/dev/null 2>&1; then
+        result=0
+    fi
+    
+    export PATH="$saved_path"
+    return $result
+}
+
+show_command_availability_table() {
+    echo ""
+    echo -e "${WHITE}Available Commands:${NC}"
+    
+    local commands
+    commands=$(get_cope_commands)
+    
+    if [ -z "$commands" ]; then
+        echo -e "  ${RED}No cope commands found${NC}"
+        return
+    fi
+    
+    mapfile -t cmd_array < <(echo "$commands")
+
+    # Calculate number of columns based on terminal width
+    local term_width=${COLUMNS:-80}
+    local max_cmd_length=0
+    
+    # Find longest command name
+    for cmd in "${cmd_array[@]}"; do
+        if [ ${#cmd} -gt $max_cmd_length ]; then
+            max_cmd_length=${#cmd}
+        fi
+    done
+    
+    # Account for "✓ " prefix (3 chars) and some padding
+    local col_width=$((max_cmd_length + 5))
+    local num_cols=$((term_width / col_width))
+    [ $num_cols -lt 1 ] && num_cols=1
+    
+    # Print in columns
+    local count=0
+    for cmd in "${cmd_array[@]}"; do
+        if check_command_available "$cmd"; then
+            printf "  ${GREEN}✓${NC} %-*s" $((col_width - 3)) "$cmd"
+        else
+            printf "  ${RED}✗${NC} %-*s" $((col_width - 3)) "$cmd"
+        fi
+        count=$((count + 1))
+        if [ $((count % num_cols)) -eq 0 ]; then
+            echo ""
+        fi
+    done
+    # Add final newline if needed
+    if [ $((count % num_cols)) -ne 0 ]; then
+        echo ""
+    fi
+}
+
+show_status() {
+    echo -e "${WHITE}Cope Status:${NC}"
+    case ":$PATH:" in
+        *":$COPE_BIN_DIR:"*)
+            echo -e "  Status: ${GREEN}ENABLED${NC}"
+            echo -e "  Location: ${CYAN}$COPE_BIN_DIR${NC}"
+            ;;
+        *)
+            echo -e "  Status: ${RED}DISABLED${NC}"
+            echo -e "  To enable: ${YELLOW}eval \$(cope enable)${NC}"
+            ;;
+    esac
+    
+    show_command_availability_table
+}
+
+cope_enable() {
+    # Check if already enabled
+    case ":$PATH:" in
+        *":$COPE_BIN_DIR:"*) 
+            echo "# Cope already enabled" >&2
+            ;;
+        *)         
+            echo 'export PATH="$(dirname $(find $(dirname "$(realpath "$(which cope)")") | grep nocope)):$PATH"'
+            echo "# Cope wrappers enabled" >&2
+            ;;
+    esac
+}
+
+cope_disable() {
+    # Remove from PATH using parameter expansion
+    echo "export PATH=\"\${PATH//$COPE_BIN_DIR:/}\""
+    echo "export PATH=\"\${PATH//:$COPE_BIN_DIR/}\""
+    echo "export PATH=\"\${PATH//$COPE_BIN_DIR/}\""
+    echo "# Cope wrappers disabled" >&2
+}
+
+execute_command() {
+    local cmd="$1"
+    shift
+    
+    # Check if the command exists in our cope directory
+    if [ -x "$COPE_BIN_DIR/$cmd" ]; then
+        # Execute with COPE=1 environment
+        export COPE=1
+        exec "$COPE_BIN_DIR/$cmd" "$@"
+    else
+        # Check if it's available in the system PATH
+        if command -v "$cmd" >/dev/null 2>&1; then
+            export COPE=1
+            exec "$cmd" "$@"
+        else
+            echo -e "${RED}Error:${NC} Command '$cmd' not found" >&2
+            show_command_availability_table
+            exit 1
+        fi
+    fi
+}
+
+# Main logic
+case "$1" in
+    enable|on)
+        cope_enable
+        ;;
+    disable|off)
+        cope_disable
+        ;;
+    status)
+        show_status
+        ;;
+    help|--help|-h|"")
+        show_help
+        ;;
+    *)
+        # Check if it's a cope control command that we don't recognize
+        if [ $# -eq 1 ] && [[ "$1" =~ ^(enable|disable|on|off|status|help)$ ]]; then
+            show_help
+            exit 1
+        fi
+        
+        # Otherwise, treat it as a command to execute
+        execute_command "$@"
+        ;;
+esac
