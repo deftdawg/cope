@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 missing=0
 for i in $(cat dependencies);do
