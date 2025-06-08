@@ -30,6 +30,7 @@ sub install_share {
 		# Set up the install
 		$self->postamble(<<"END_MAKEFILE");
 config ::
+\t\$(NOECHO) mkdir -p \$(INST_LIB)${S}auto${S}share${S}dist${S}\$(DISTNAME) && \\
 \t\$(NOECHO) cp -RpP \\
 \t\t"$dir" \$(INST_LIB)${S}auto${S}share${S}dist${S}\$(DISTNAME)
 
@@ -44,6 +45,7 @@ END_MAKEFILE
 		# Set up the install
 		$self->postamble(<<"END_MAKEFILE");
 config ::
+\t\$(NOECHO) mkdir -p \$(INST_LIB)${S}auto${S}share${S}module${S}$module && \\
 \t\$(NOECHO) cp -RpP \\
 \t\t"$dir" \$(INST_LIB)${S}auto${S}share${S}module${S}$module
 
