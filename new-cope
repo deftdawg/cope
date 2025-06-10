@@ -38,6 +38,7 @@ show_help() {
     echo -e "  ${GREEN}enable${NC}, ${GREEN}on${NC}     - Add cope wrappers to PATH (prepend)"
     echo -e "  ${GREEN}disable${NC}, ${GREEN}off${NC}   - Remove cope wrappers from PATH"
     echo -e "  ${GREEN}status${NC}           - Show cope status and command availability"
+    echo -e "  ${GREEN}shell${NC}            - Start a new shell with cope wrappers enabled"
     echo -e "  ${GREEN}help${NC}             - Show this help message"
     echo ""
     echo -e "${WHITE}Command Execution:${NC}"
@@ -205,9 +206,14 @@ case "$1" in
     help|--help|-h|"")
         show_help
         ;;
+    shell)
+        current_shell="${SHELL:-bash}"
+        export PATH="$COPE_BIN_DIR:$PATH"
+        exec "$current_shell"
+        ;;
     *)
         # Check if it's a cope control command that we don't recognize
-        if [ $# -eq 1 ] && [[ "$1" =~ ^(enable|disable|on|off|status|help)$ ]]; then
+        if [ $# -eq 1 ] && [[ "$1" =~ ^(enable|disable|on|off|status|help|shell)$ ]]; then
             show_help
             exit 1
         fi
