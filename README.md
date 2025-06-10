@@ -1,3 +1,9 @@
+# New Cope
+
+new-cope is a rewrite of cope to include some additional quality of life 
+improvements, including enabling and disabling cope dynamically.
+
+# Cope (original documentation)
 
 cope is a wrapper around programs that output to a terminal, to give
 them colour for utility and aesthetics while still keeping them the
@@ -20,14 +26,18 @@ You'll need Perl >= 5.10, and a working version of CPAN.
 
 Installation is the standard procedure:
 
+```sh
 $ perl Makefile.PL
 $ make
 $ make test
 $ sudo make install
+```
 
 Then, find out where perl put the scripts:
 
+```sh
 $ perl cope_path.pl
+```
 
 And add that to your $PATH.
 
