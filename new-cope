@@ -209,6 +209,7 @@ case "$1" in
     shell)
         current_shell="${SHELL:-bash}"
         export PATH="$COPE_BIN_DIR:$PATH"
+        echo -e "${GREEN}Cope shell active. Type 'exit' to return.${NC}"
         exec "$current_shell"
         ;;
     *)
