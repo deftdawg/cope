@@ -6,26 +6,20 @@
 #
 # new-cope serves two purposes: 
 #
-# 1. 'new-cope' supports enable/disable cope at run-time (copy all cope scripts except cope into a 
-#    subdirectory i.e. bin-cope; this script will find them); this was necessary for Nix/NixOS where the
-#    presence of cope scripts in bin created install conflicts with the real packages that cope is 
-#    supposed to be colourizing. Installing cope at the same package level (system) as core-utils 
-#    broke coreutils.  Installing at different package levels (coreutils @ system, cope @ user) worked,
-#    but as this was super confusing, I thought it better to resolve the conflict by moving the scripts
-#    out of PATH's bin.
+# 1. Runtime enable/disable: Cope scripts are stored in a subdirectory (e.g. ../libexec) 
+#    instead of bin to avoid install conflicts. This script finds and uses them dynamically.
+#    This was necessary for Nix/NixOS where cope scripts in bin conflicted with real packages.
 #
-# 2. Since we needed to rewrite to add on/off enable instructions for #1, we also added colour help
-#    and status messages
+# 2. Enhanced functionality: Adds color help and status messages since we were rewriting anyway.
 #
-# Refer to Nix's 'cope' derivation 'postInstall' phase for how to use it/install it 
-# (https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/co/cope/package.nix)
-# Basically, command scripts must be copied to a sub-directory (i.e. 'bin-cope') and then 'new-cope' (bash) must 
-# be copied over 'cope' (perl) post build/unit-test phase since bash scripts don't work in Perl unit tests.
+# Installation: Copy command scripts to a subdirectory (e.g. ../libexec), then replace the original
+# 'cope' (perl) with 'new-cope' (bash) post-build since bash scripts don't work in Perl unit tests.
 #
-# Jank, I know, don't care enough to invest time in it to make it better, PRs welcome though.
+# See Nix's 'cope' derivation (postInstall phase) for reference:
+# https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/co/cope/package.nix
 
 # Find the directory where cope wrappers are located
-COPE_BIN_DIR="$(dirname $(find $(dirname "$(realpath "$0")") | grep nocope))"
+COPE_BIN_DIR="$(dirname "$(find "$(dirname "$(dirname "$(realpath "$0" )" )" )" -name nocope -type f -executable -print -quit 2>/dev/null)" )"
 
 # Colors for output
 RED='\033[0;31m'
@@ -160,7 +154,8 @@ cope_enable() {
             echo "# Cope already enabled" >&2
             ;;
         *)         
-            echo 'export PATH="$(dirname $(find $(dirname "$(realpath "$(which cope)")") | grep nocope)):$PATH"'
+            # shellcheck disable=SC2016
+            echo 'PATH="$(dirname $(find "$(dirname "$(dirname "$(realpath "$(which cope)")")")" -name nocope -type f -executable -print -quit 2>/dev/null)):$PATH"'
             echo "# Cope wrappers enabled" >&2
             ;;
     esac
