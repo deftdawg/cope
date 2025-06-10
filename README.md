@@ -1,9 +1,19 @@
-# New Cope
+# Cope and new Cope for colourized shell command output.
+
+## Screenshot
+
+<img src="https://github.com/user-attachments/assets/5636da62-f6e8-4301-b3c8-f4a85867be15" width=80%/>
+
+New Cope in the top left pane, with cope wrapped output for ls, df, ping, shasum, free, 
+lsusb in the other panes.
+
+
+## New Cope
 
 new-cope is a rewrite of cope to include some additional quality of life 
 improvements, including enabling and disabling cope dynamically.
 
-# Cope (original documentation)
+## Cope (original documentation)
 
 cope is a wrapper around programs that output to a terminal, to give
 them colour for utility and aesthetics while still keeping them the
