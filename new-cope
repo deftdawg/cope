@@ -19,7 +19,7 @@
 # https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/co/cope/package.nix
 
 # Find the directory where cope wrappers are located
-COPE_BIN_DIR="$(dirname "$(find "$(dirname "$(dirname "$(realpath "$0" )" )" )" -name nocope -type f -executable -print -quit 2>/dev/null)" )"
+COPE_BIN_DIR="$(dirname "$(find "$(dirname "$(dirname "$(realpath "$0" )" )" )" -name nocope -type f -perm /a+x -print -quit 2>/dev/null)" )"
 
 # Colors for output
 RED='\033[0;31m'
@@ -61,7 +61,7 @@ show_help() {
 
 get_cope_commands() {
     # Get list of all commands in cope bin directory, excluding cope itself
-    find "$COPE_BIN_DIR" -maxdepth 1 -type f -not -type l -executable ! -name "cope" ! -name "nocope" ! -name ".*" | sort | while read -r cmd; do
+    find "$COPE_BIN_DIR" -maxdepth 1 -type f -not -type l -perm /a+x ! -name "cope" ! -name "nocope" ! -name ".*" | sort | while read -r cmd; do
         basename "$cmd"
     done
 }
