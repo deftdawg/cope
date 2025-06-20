@@ -390,10 +390,13 @@ the one not in the scripts directory.
 =cut
 
 sub real_path {
-  my @dirs  = PATH->Whence($file);
+  my $local_file = $file;
+  $local_file =~ s/^\.//;
+  $local_file =~ s/-wrapped$//;
+  my @dirs  = PATH->Whence($local_file);
   my $index = firstidx { $_ eq $0 } @dirs;
   my $path  = $dirs[ $index + 1 ]
-    or croak `bash -c '\$\(type -p \$\(which command-not-found\) /usr/lib/command-not-found | head -1\) $file || echo -n "Executable not in \$PATH: $file"'`;
+    or croak `bash -c '\$\(type -p \$\(which command-not-found\) /usr/lib/command-not-found | head -1\) $local_file || echo -n "Executable not in \$PATH: $local_file"'`;
 
   return $path;
 }

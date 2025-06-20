@@ -1,6 +1,10 @@
 #!/usr/bin/env perl
-use Test::More tests => 14;
-use App::Cope qw[mark line colourise];
+use Test::More tests => 16;
+use App::Cope qw[mark line colourise real_path];
+
+# Needed for the real_path test
+use File::Spec;
+use Env::Path qw[:all];
 
 sub test($&$$) {
   my ( $description, $sub, $in, $expected ) = @_;
@@ -112,3 +116,75 @@ test 'consecutive groups 4' => sub {
 },
   'This is bold but this should not be',
   '\\E[32;1mThis is bold \\E[0;41mbut this should not be\\E[0m';
+
+# Test real_path with Nix-style wrapper
+SKIP: {
+  # Mock $0 to simulate a wrapped script path
+  my $mock_script_name = ".ls-wrapped";
+  my $mock_script_dir = File::Spec->catdir(File::Spec->tmpdir(), "test_cope_$$");
+  my $mock_script_path = File::Spec->catfile($mock_script_dir, $mock_script_name);
+
+  # Ensure App::Cope sees our mocked $0 by setting it early
+  # However, $0 is global and App::Cope.pm caches its splitpath at load time.
+  # This test will rely on the already loaded App::Cope.pm having $file as '.ls-wrapped'
+  # if $0 was set to that value *before* App::Cope was loaded.
+  # For an isolated test, one would typically use Test::MockModule or similar,
+  # or ensure App::Cope is loaded *after* $0 is set.
+  # Given the current structure, we proceed by ensuring App::Cope::real_path
+  # correctly processes the $file variable derived from $0.
+
+  # We need to ensure that App::Cope's own $file variable (derived from its $0)
+  # is what we expect. This is tricky without deeper mocking or refactoring App::Cope.
+  # For this test, we assume App::Cope.pm's $file will be '.ls-wrapped' if $0 is set accordingly.
+  # This part of the setup is more conceptual for this specific test environment.
+  # The core logic tested is how real_path uses its $file.
+
+  my $original_whence;
+  my $whence_called_with;
+
+  BEGIN {
+    $original_whence = \&Env::Path::PATH::Whence;
+    no warnings 'redefine';
+    *Env::Path::PATH::Whence = sub {
+      my ($self, $program) = @_;
+      $whence_called_with = $program;
+      # Simulate $0 being found in the first path, and the real binary in the second
+      if ($program eq "ls") { # This is the "unwrapped" name real_path should search for
+        # $mock_script_path would be found by PATH->Whence($0)
+        # real_path then calls PATH->Whence("ls")
+        return ($mock_script_path, "/usr/bin/ls", "/bin/ls");
+      }
+      return ();
+    };
+  }
+
+  # Set $App::Cope::file directly for testing real_path's internal logic
+  # This is a more direct way to test real_path's manipulation of $file
+  # without relying on the global $0's state at App::Cope load time.
+  my $original_cope_file;
+  {
+    no warnings 'redefine';
+    $original_cope_file = $App::Cope::file; # Save original
+    $App::Cope::file = $mock_script_name; # Set to ".ls-wrapped"
+  }
+
+  # Also mock $0 itself for completeness, as real_path uses it for firstidx comparison
+  my $original_script_0 = $0;
+  $0 = $mock_script_path;
+
+  my $expected_path = "/usr/bin/ls";
+  my $found_path = App::Cope::real_path();
+
+  is($found_path, $expected_path, "real_path finds correct path for .name-wrapped executable");
+  is($whence_called_with, "ls", "PATH->Whence was called with the unwrapped name 'ls'");
+
+  # Restore original Env::Path::PATH::Whence
+  BEGIN {
+    no warnings 'redefine';
+    *Env::Path::PATH::Whence = $original_whence;
+  }
+
+  # Restore App::Cope::file and $0
+  $App::Cope::file = $original_cope_file;
+  $0 = $original_script_0;
+}
