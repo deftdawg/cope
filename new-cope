@@ -156,7 +156,7 @@ cope_enable() {
             ;;
         *)         
             # shellcheck disable=SC2016
-            echo 'PATH="$(dirname $(find "$(dirname "$(dirname "$(realpath "$(which cope)")")")" -name nocope -type f -executable -print -quit 2>/dev/null)):$PATH"'
+            echo 'PATH="$(dirname $(find "$(dirname "$(dirname "$(realpath "\$0")")")" "$(dirname "$(dirname "$(realpath "$(which cope)")")")" -name nocope -type f -executable -print -quit 2>/dev/null)):$PATH"'
             echo "# Cope wrappers enabled" >&2
             ;;
     esac
