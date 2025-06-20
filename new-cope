@@ -155,8 +155,14 @@ cope_enable() {
             echo "# Cope already enabled" >&2
             ;;
         *)         
-            # shellcheck disable=SC2016
-            echo 'PATH="$(dirname $(find "$(dirname "$(dirname "$(realpath "$(which cope)")")")" -name nocope -type f -executable -print -quit 2>/dev/null)):$PATH"'
+            script_path="$(realpath "$0")"
+            if [ "$script_path" = "$(realpath "$(which cope)" 2>/dev/null)" ]; then
+                # shellcheck disable=SC2016
+                echo 'PATH="$(dirname $(find "$(dirname "$(dirname "$(realpath "$(which cope)")")")" -name nocope -type f -exec test -x {} \; -print -quit 2>/dev/null)):$PATH"'
+            else
+                # shellcheck disable=SC2016
+                echo 'PATH="$(dirname $(find "'"$(dirname "$(realpath "$(dirname "$0")")")"'" -name nocope -type f -exec test -x {} \; -print -quit 2>/dev/null)):$PATH"'
+            fi
             echo "# Cope wrappers enabled" >&2
             ;;
     esac
