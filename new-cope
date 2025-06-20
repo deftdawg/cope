@@ -18,6 +18,8 @@
 # See Nix's 'cope' derivation (postInstall phase) for reference:
 # https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/co/cope/package.nix
 
+NEW_COPE_NOCONF_SEARCH_PATH="$(dirname "$(dirname "$(realpath "$0")")")"
+
 # Find the directory where cope wrappers are located
 COPE_BIN_DIR="$(dirname "$(find "$(dirname "$(dirname "$(realpath "$0" )" )" )" -name nocope -type f -exec test -x {} \; -print -quit 2>/dev/null)" )"
 
@@ -156,7 +158,21 @@ cope_enable() {
             ;;
         *)         
             # shellcheck disable=SC2016
-            echo 'PATH="$(dirname $(find "$(dirname "$(dirname "$(realpath "$(which cope)")")")" -name nocope -type f -executable -print -quit 2>/dev/null)):$PATH"'
+            local WHICH_COPE_SEARCH_PATH=""
+            # Attempt to find cope in PATH and resolve its real base directory
+            if local cope_path_found=$(command -v cope); then
+                if local real_cope_path_found=$(realpath "$cope_path_found"); then
+                    WHICH_COPE_SEARCH_PATH=$(dirname "$(dirname "$real_cope_path_found")")
+                fi
+            fi
+
+            if [ -n "$WHICH_COPE_SEARCH_PATH" ]; then
+                # If cope was found in PATH and resolved, search both locations
+                echo 'PATH="$(dirname $(find "'"$NEW_COPE_NOCONF_SEARCH_PATH"'" "'"$WHICH_COPE_SEARCH_PATH"'" -name nocope -type f -executable -print -quit 2>/dev/null)):$PATH"'
+            else
+                # Otherwise, only search relative to new-cope itself
+                echo 'PATH="$(dirname $(find "'"$NEW_COPE_NOCONF_SEARCH_PATH"'" -name nocope -type f -executable -print -quit 2>/dev/null)):$PATH"'
+            fi
             echo "# Cope wrappers enabled" >&2
             ;;
     esac
