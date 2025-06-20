@@ -61,7 +61,7 @@ show_help() {
 
 get_cope_commands() {
     # Get list of all commands in cope bin directory, excluding cope itself
-    find "$COPE_BIN_DIR" -maxdepth 1 -type f -not -type l -executable ! -name "cope" ! -name "nocope" | sort | while read -r cmd; do
+    find "$COPE_BIN_DIR" -maxdepth 1 -type f -not -type l -executable ! -name "cope" ! -name "nocope" ! -name ".*" | sort | while read -r cmd; do
         basename "$cmd"
     done
 }
